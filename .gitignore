@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local environment and private data
+.venv/
+.env
+data/
+__pycache__/
+.pytest_cache/
