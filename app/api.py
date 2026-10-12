@@ -56,8 +56,13 @@ async def chat(request: ChatRequest):
                 "answer": result["answer"],
                 "status": status,
                 "topics": result["topics"],
+                "rag_sources": [
+                    {"id": doc["id"], "score": round(doc["score"], 4)}
+                    for doc in result.get("documents", [])
+                ],
                 "rounds": result["round"],
                 "review": result.get("review"),
+                "debug_findings": result.get("findings", []),
             }
     except httpx.TimeoutException:
         logger.exception("Model request timed out")

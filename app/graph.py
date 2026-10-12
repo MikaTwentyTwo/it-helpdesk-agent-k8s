@@ -9,6 +9,7 @@ from langgraph.types import Send
 
 from app.llm import call_model
 from app.supervisor import route_question
+from app.rag import retrieve
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -27,6 +28,7 @@ class Review(BaseModel):
 class AgentState(TypedDict, total=False):
     question: str
     topics: list[str]
+    documents: list[dict]
     clarification: str
     findings: Annotated[list[dict], operator.add]
     round: int
@@ -43,7 +45,15 @@ def current_findings(state: AgentState):
 
 async def supervisor(state: AgentState):
     decision = await route_question(state["question"])
-    return {**decision.model_dump(), "round": 1}
+    documents = []
+    if decision.topics:
+        request = json.loads(state["question"])
+        documents = await retrieve(request["current_question"], top_k=3)
+    return {
+        **decision.model_dump(),
+        "round": 1,
+        "documents": documents,
+    }
 
 
 def specialist_tasks(state: AgentState):
@@ -55,6 +65,7 @@ def specialist_tasks(state: AgentState):
                 "topic": topic,
                 "round": state["round"],
                 "feedback": state.get("review", {}).get("feedback", ""),
+                "documents": state["documents"],
             },
         )
         for topic in state["topics"]
@@ -69,17 +80,12 @@ def dispatch(state: AgentState):
 
 async def specialist(state: dict):
     prompt = read_prompt(state["topic"])
-    knowledge = (
-        ROOT / "knowledge" / f"{state['topic']}.md"
-    ).read_text(encoding="utf-8-sig")
-    prompt += (
-        "\nUse the following curated knowledge as factual reference. "
-        "Do not invent unsupported procedures.\n" + knowledge
-    )
+
     payload = json.dumps(
         {
             "question": state["question"],
             "reviewer_feedback": state["feedback"],
+            "documents": state["documents"],
         },
         ensure_ascii=False,
     )
@@ -106,6 +112,7 @@ async def critic(state: AgentState):
                 for turn in request["dialogue_history"]
             ],
             "findings": current_findings(state),
+            "documents": state["documents"],
         },
         ensure_ascii=False,
     )
@@ -133,6 +140,7 @@ async def synthesizer(state: AgentState):
         {
             "question": state["question"],
             "findings": current_findings(state),
+            "documents": state["documents"],
         },
         ensure_ascii=False,
     )
