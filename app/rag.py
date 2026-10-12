@@ -1,3 +1,4 @@
+import os
 from app.telemetry import observed
 import hashlib
 import json
@@ -9,7 +10,7 @@ import httpx
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "data" / "rag.db"
-OLLAMA_URL = "http://127.0.0.1:11435"
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11435")
 EMBED_MODEL = "embeddinggemma"
 
 

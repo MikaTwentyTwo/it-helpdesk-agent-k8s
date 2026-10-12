@@ -1,7 +1,8 @@
+﻿import os
 from app.telemetry import observed, llm_tokens
 import httpx
 
-OLLAMA_URL = "http://127.0.0.1:11435"
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11435")
 MODEL = "qwen3.5:4b"
 
 
@@ -20,7 +21,7 @@ async def call_model(system: str, question: str, json_mode: bool = False) -> str
     if json_mode:
         payload["format"] = "json"
 
-    async with httpx.AsyncClient(timeout=180.0, trust_env=False) as client:
+    async with httpx.AsyncClient(timeout=600.0, trust_env=False) as client:
         response = await client.post(
             f"{OLLAMA_URL}/api/chat",
             json=payload,
@@ -43,3 +44,4 @@ async def ask_model(question: str) -> str:
         ),
         question=question,
     )
+
