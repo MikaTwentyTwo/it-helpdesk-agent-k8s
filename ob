@@ -1,0 +1,12 @@
+route:
+  receiver: local-webhook
+  group_by: ['alertname', 'layer']
+  group_wait: 10s
+  group_interval: 30s
+  repeat_interval: 5m
+
+receivers:
+  - name: local-webhook
+    webhook_configs:
+      - url: http://host.docker.internal:8082/alerts
+        send_resolved: true

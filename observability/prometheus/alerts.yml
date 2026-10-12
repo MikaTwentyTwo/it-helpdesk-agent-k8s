@@ -1,0 +1,18 @@
+﻿groups:
+  - name: helpdesk
+    rules:
+      - alert: HelpdeskUnavailable
+        expr: up{job="helpdesk-agent"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Helpdesk metrics endpoint is unavailable"
+
+      - alert: HelpdeskOperationErrors
+        expr: sum by (layer) (increase(helpdesk_operations_total{job="helpdesk-agent",status="error"}[5m])) > 0
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Operation errors in layer {{ $labels.layer }}"
