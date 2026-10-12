@@ -1,4 +1,5 @@
-﻿import hashlib
+from app.telemetry import observed
+import hashlib
 import json
 import math
 import sqlite3
@@ -28,6 +29,7 @@ def connect():
     return db
 
 
+@observed("memory.rag.embedding")
 async def embed(text: str) -> list[float]:
     async with httpx.AsyncClient(timeout=180.0, trust_env=False) as client:
         response = await client.post(
@@ -53,6 +55,7 @@ def cosine(left: list[float], right: list[float]) -> float:
     return sum(x * y for x, y in zip(left, right)) / denominator
 
 
+@observed("memory.rag.index")
 async def index_knowledge() -> int:
     files = sorted((ROOT / "knowledge").glob("*.md"))
     if not files:
@@ -85,6 +88,7 @@ async def index_knowledge() -> int:
     return len(records)
 
 
+@observed("memory.rag.retrieve")
 async def retrieve(question: str, top_k: int = 2) -> list[dict]:
     if top_k < 1:
         raise ValueError("top_k must be positive")

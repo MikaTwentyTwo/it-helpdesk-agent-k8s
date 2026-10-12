@@ -1,4 +1,5 @@
-﻿import sqlite3
+from app.telemetry import observed
+import sqlite3
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +22,7 @@ def connect():
     return db
 
 
+@observed("memory.short_term.read")
 def read_history(session_id: str) -> list[dict]:
     db = connect()
     try:
@@ -40,6 +42,7 @@ def read_history(session_id: str) -> list[dict]:
         db.close()
 
 
+@observed("memory.short_term.write")
 def save_turn(session_id: str, question: str, answer: str):
     db = connect()
     try:
@@ -70,6 +73,7 @@ def connect_solutions():
     return db
 
 
+@observed("memory.long_term.write")
 def save_confirmed_solution(
     user_id: str,
     problem: str,
@@ -97,6 +101,7 @@ def save_confirmed_solution(
         db.close()
 
 
+@observed("memory.long_term.read")
 def read_solutions(user_id: str) -> list[dict]:
     db = connect_solutions()
     try:

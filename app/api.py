@@ -1,3 +1,6 @@
+from app.telemetry import observed
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from fastapi import Response
 import asyncio
 import logging
 
@@ -29,6 +32,7 @@ def health():
 
 
 @app.post("/chat")
+@observed("request.chat")
 async def chat(request: ChatRequest):
     try:
         async with lock:
@@ -56,6 +60,7 @@ async def chat(request: ChatRequest):
                 "answer": result["answer"],
                 "status": status,
                 "topics": result["topics"],
+                "dependencies": result.get("dependencies", []),
                 "rag_sources": [
                     {"id": doc["id"], "score": round(doc["score"], 4)}
                     for doc in result.get("documents", [])
@@ -96,3 +101,11 @@ async def confirm_solution(request: SolutionRequest):
             confirmed=True,
         )
     return {"id": record_id, "saved": True}
+
+
+@app.get("/metrics")
+def metrics():
+    return Response(
+        content=generate_latest(),
+        headers={"Content-Type": CONTENT_TYPE_LATEST},
+    )

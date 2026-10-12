@@ -1,3 +1,4 @@
+from app.telemetry import observed
 import json
 import operator
 from pathlib import Path
@@ -10,6 +11,7 @@ from langgraph.types import Send
 from app.llm import call_model
 from app.supervisor import route_question
 from app.rag import retrieve
+from app.knowledge_graph import read_dependencies
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -29,6 +31,7 @@ class AgentState(TypedDict, total=False):
     question: str
     topics: list[str]
     documents: list[dict]
+    dependencies: list[dict]
     clarification: str
     findings: Annotated[list[dict], operator.add]
     round: int
@@ -43,6 +46,7 @@ def current_findings(state: AgentState):
     ]
 
 
+@observed("agent.supervisor")
 async def supervisor(state: AgentState):
     decision = await route_question(state["question"])
     documents = []
@@ -53,6 +57,7 @@ async def supervisor(state: AgentState):
         **decision.model_dump(),
         "round": 1,
         "documents": documents,
+        "dependencies": read_dependencies(decision.topics),
     }
 
 
@@ -66,6 +71,7 @@ def specialist_tasks(state: AgentState):
                 "round": state["round"],
                 "feedback": state.get("review", {}).get("feedback", ""),
                 "documents": state["documents"],
+                "dependencies": state["dependencies"],
             },
         )
         for topic in state["topics"]
@@ -78,14 +84,20 @@ def dispatch(state: AgentState):
     return specialist_tasks(state)
 
 
+@observed("agent.specialist")
 async def specialist(state: dict):
     prompt = read_prompt(state["topic"])
+    skill = (
+        ROOT / "skills" / f"{state['topic']}.md"
+    ).read_text(encoding="utf-8-sig")
 
     payload = json.dumps(
         {
             "question": state["question"],
             "reviewer_feedback": state["feedback"],
+            "skill": skill,
             "documents": state["documents"],
+            "dependencies": state["dependencies"],
         },
         ensure_ascii=False,
     )
@@ -101,6 +113,7 @@ async def specialist(state: dict):
     }
 
 
+@observed("agent.critic")
 async def critic(state: AgentState):
     request = json.loads(state["question"])
     payload = json.dumps(
@@ -113,6 +126,7 @@ async def critic(state: AgentState):
             ],
             "findings": current_findings(state),
             "documents": state["documents"],
+            "dependencies": state["dependencies"],
         },
         ensure_ascii=False,
     )
@@ -131,16 +145,19 @@ def after_review(state: AgentState):
     return "escalate"
 
 
+@observed("agent.revise")
 def revise(state: AgentState):
     return {"round": state["round"] + 1}
 
 
+@observed("agent.synthesizer")
 async def synthesizer(state: AgentState):
     payload = json.dumps(
         {
             "question": state["question"],
             "findings": current_findings(state),
             "documents": state["documents"],
+            "dependencies": state["dependencies"],
         },
         ensure_ascii=False,
     )
@@ -148,6 +165,7 @@ async def synthesizer(state: AgentState):
     return {"answer": answer}
 
 
+@observed("agent.escalate")
 def escalate(state: AgentState):
     return {
         "answer": (
@@ -157,6 +175,7 @@ def escalate(state: AgentState):
     }
 
 
+@observed("agent.clarify")
 def clarify(state: AgentState):
     return {
         "answer": state["clarification"]

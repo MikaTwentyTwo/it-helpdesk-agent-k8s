@@ -1,9 +1,11 @@
-﻿import httpx
+from app.telemetry import observed, llm_tokens
+import httpx
 
 OLLAMA_URL = "http://127.0.0.1:11435"
 MODEL = "qwen3.5:4b"
 
 
+@observed("llm.chat")
 async def call_model(system: str, question: str, json_mode: bool = False) -> str:
     payload = {
         "model": MODEL,
@@ -24,7 +26,11 @@ async def call_model(system: str, question: str, json_mode: bool = False) -> str
             json=payload,
         )
         response.raise_for_status()
-        return response.json()["message"]["content"]
+        data = response.json()
+        content = data["message"]["content"]
+        llm_tokens.labels("input").inc(data.get("prompt_eval_count", 0))
+        llm_tokens.labels("output").inc(data.get("eval_count", 0))
+        return content
 
 
 async def ask_model(question: str) -> str:

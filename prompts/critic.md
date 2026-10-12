@@ -26,3 +26,10 @@ Important:
 Approve a relevant, supported and safe answer.
 If rejecting, quote the exact problematic phrase and explain the concrete error.
 Do not add speculative objections or unrelated requirements.
+
+dependencies contains curated relationships between IT components.
+Use each relationship according to its meaning field.
+These are general relationships, not proof of the cause of the current incident.
+Network printing needs reachable connectivity, not necessarily internet or identical subnets.
+Do not invent additional graph relationships.
+Do not cite graph relationships as markdown document contents unless the document supports them.

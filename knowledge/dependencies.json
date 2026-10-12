@@ -1,0 +1,28 @@
+﻿{
+  "edges": [
+    {
+      "source": "printer",
+      "relation": "depends_on",
+      "target": "network",
+      "meaning": "Network printing requires reachable network connectivity, not necessarily internet access."
+    },
+    {
+      "source": "wifi",
+      "relation": "provides",
+      "target": "network",
+      "meaning": "Wi-Fi can provide a device with network connectivity; wired connectivity is another possibility."
+    },
+    {
+      "source": "software",
+      "relation": "may_require",
+      "target": "access",
+      "meaning": "Installing approved software may require administrator authorization."
+    },
+    {
+      "source": "access",
+      "relation": "requires",
+      "target": "approval",
+      "meaning": "Granting new permissions requires approval and an authorized administrator."
+    }
+  ]
+}
