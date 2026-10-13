@@ -3,8 +3,7 @@
 Local multi-agent IT support assistant for Wi-Fi, printers, access requests
 and software issues.
 
-Repository: https://github.com/MikaTwentyTwo/it-helpdesk-agent-k8s
-
+Repository: https://github.com/MikaTwentyTwo/pc-helper-agent-k8s
 ## Architecture
 
 Python, FastAPI and LangGraph.
